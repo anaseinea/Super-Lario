@@ -1,0 +1,133 @@
+/* ================================================================== *
+ * C. camera: one-way scroll, soft left wall, never back-tracks
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-CAM'));
+  const { level, I, p } = ctx;
+  I.press('right');
+  let switched = false, frames = 0;
+  while (frames < 500) {
+    frames++;
+    run(ctx, 1, function () {
+      if (!switched && p.onGround && p.x >= 350) {      // follow hit needs center >= 352
+        I.release('right'); I.press('left'); switched = true;
+      }
+    });
+    if (switched && frames >= 400) break;               // pinned against the wall for ~250f
+  }
+  ok(switched, 'C: walk reached x>=350 before turning back');
+  let mono = true, lastCam = -1;
+  for (let i = 0; i < ctx.cameraLog.length; i++) {
+    if (ctx.cameraLog[i] < lastCam - 1e-9) mono = false;
+    lastCam = ctx.cameraLog[i];
+  }
+  ok(ctx.cameraLog.length >= 400, 'C: camera sampled every frame (' + ctx.cameraLog.length + ')');
+  ok(mono, 'C: camX never decreases across the whole pinned stretch');
+  ok(level.camX === 256 && level.camX === level.levelPx - C.VIEW_W,
+     'C: camera parked at level max 256 (' + level.camX + ')');
+  near(p.x, 256, 0.01, 'C: soft wall re-pins player onto camX (x=' + p.x + ')');
+  ok(level.flagPhase === null && !level.dying, 'C: wall pin triggers no flagpole takeover');
+}
+
+/* ================================================================== *
+ * D. pit death: dies regardless of form, lives left to Game
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-PIT', function (rows) {
+    for (let c = 8; c <= 11; c++) { rows[13][c] = '.'; rows[14][c] = '.'; }
+  }));
+  const { level, gs, I, p } = ctx;
+  p.collectJelly(level);                     // big player still dies in pits
+  ok(p.big(), 'D: test player grew big first');
+  I.press('right');
+  let frames = 0;
+  while (!level.finished && frames < 320) { run(ctx, 1); frames++; }
+  ok(level.finished === 'dead', 'D: pit fall ends level dead');
+  ok(level.dyingCause === 'pit', 'D: dying cause recorded as pit');
+  ok(gs.lives === 3, 'D: lives untouched by Level (Game decrements)');
+  ok(count(ctx.rec.sfxLog, 'die') >= 1, 'D: die jingle played');
+  ok(count(ctx.rec.sfxLog, 'hurt') === 0, 'D: no hurt sfx for pit');
+  ok(p.deathDone === true, 'D: player death arc completed');
+  ok(gs.score === 0, 'D: no stray score on pit run');
+}
+
+/* ================================================================== *
+ * E. time-out: warn at HURRY_AT, death at zero
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-TIME', null, { time: 110 }));
+  const { level, gs, p } = ctx;
+  let warnFrame = 0, hurryAtWarn = null, timeAtWarn = null, frames = 0;
+  while (!level.finished && frames < 3540) {
+    frames++;
+    level.update(); ctx.I.__step();
+    if (!warnFrame && count(ctx.rec.sfxLog, 'warn') === 1) {
+      warnFrame = frames; timeAtWarn = level.timeLeft; hurryAtWarn = level.hudData().hurry;
+    }
+  }
+  ok(warnFrame === 300, 'E: warn sfx at time 100 -> frame 300 (got ' + warnFrame + ')');
+  ok(timeAtWarn === 100, 'E: clock shows 100 when warning');
+  ok(hurryAtWarn === true, 'E: hudData hurry true at 100');
+  ok(level.finished === 'dead', 'E: time-out kills player');
+  ok(level.dyingCause === 'time', 'E: dying cause recorded as time');
+  ok(level.timeLeft === 0, 'E: clock bottoms at 0');
+  ok(gs.lives === 3, 'E: lives untouched by Level');
+  ok(p.x < 45, 'E: idle player never wandered (x=' + p.x + ')');
+  ok(count(ctx.rec.sfxLog, 'warn') === 1, 'E: warn plays exactly once');
+}
+
+/* ================================================================== *
+ * F. spikes: big -> shrink survives, single hit thanks to invuln policy
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-SPIKE1', function (rows) { rows[12][8] = 's'; }));
+  const { level, gs, I, p } = ctx;
+  p.collectJelly(level);
+  I.press('right');
+  run(ctx, 240);
+  ok(count(ctx.rec.sfxLog, 'spike') === 1, 'F: exactly one spike hit (' + count(ctx.rec.sfxLog, 'spike') + ')');
+  ok(p.power === 'small', 'F: spike shrinks big player');
+  ok(!level.dying && level.finished === null, 'F: survived spike at full health loss only');
+  ok(gs.lives === 3, 'F: lives safe');
+  ok(count(ctx.rec.sfxLog, 'hurt') === 0 && count(ctx.rec.sfxLog, 'die') === 0, 'F: no death sfx for survive');
+}
+
+/* ================================================================== *
+ * G. spikes: small player standing on spikes dies after invuln expires
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-SPIKE2', function (rows) { for (let c = 8; c <= 11; c++) rows[12][c] = 's'; }));
+  const { level, gs, I, p } = ctx;
+  p.collectJelly(level);
+  I.press('right');
+  let flipped = false, frames = 0;
+  while (!level.finished && frames < 440) {
+    run(ctx, 1, function () {
+      if (!flipped && p.power === 'small') { I.release('right'); flipped = true; }  // stand on them
+    });
+    frames++;
+  }
+  ok(level.finished === 'dead', 'G: standing on spikes kills small player (' + frames + 'f)');
+  ok(level.dyingCause === 'hurt', 'G: spike death routed as hurt');
+  ok(count(ctx.rec.sfxLog, 'spike') === 2, 'G: exactly two spike hits (cooldown respected)');
+  ok(count(ctx.rec.sfxLog, 'hurt') === 1, 'G: hurt sfx plays exactly once');
+  ok(count(ctx.rec.sfxLog, 'die') >= 1, 'G: die jingle follows');
+  ok(gs.lives === 3, 'G: lives untouched');
+}
+
+/* ================================================================== *
+ * H. bonbon: +score, +coin, 1UP at the 100th coin
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-BONBON', function (rows) { rows[12][5] = 'o'; }), function (gs) { gs.coins = 99; });
+  const { level, gs, I } = ctx;
+  I.press('right');
+  run(ctx, 130);
+  ok(gs.coins === 100, 'H: bonbon collected, coins hit 100');
+  ok(gs.score === C.SCORE_COIN, 'H: bonbon scores 200');
+  ok(gs.lives === 4, 'H: 1UP granted at 100 coins');
+  ok(count(ctx.rec.sfxLog, 'bonbon') === 1 && count(ctx.rec.sfxLog, 'oneup') === 1, 'H: bonbon+oneup sfx');
+  ok(ctx.fxKinds.has('coinpop'), 'H: coin pop visual spawned');
+  ok(level.bonbons.length === 0, 'H: collected bonbon removed from level');
+  ok(level.finished === null, 'H: level continues after bonbon');
+}

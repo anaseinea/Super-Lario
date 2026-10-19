@@ -1,0 +1,56 @@
+/* PLAN: docs/plan/02-scaffold.md */
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #12132a;
+  overflow: hidden;
+}
+#wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: "Courier New", monospace;
+}
+#screen {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+  touch-action: none;
+  outline: 2px solid #2b2e55;
+}
+#hint {
+  color: #6b719e;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.6;
+  padding: 0 10px;
+}
+#touch {
+  display: none;
+  width: 256px;
+  justify-content: space-between;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#touch .cluster { display: flex; gap: 8px; }
+#touch button {
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 22px;
+  font-family: inherit;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#touch button:active { background: rgba(255, 255, 255, 0.4); }
+@media (pointer: coarse) {
+  #touch { display: flex; }
+  #hint { display: none; }
+}

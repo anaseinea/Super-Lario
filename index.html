@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>SUPER GUMDROP BROS.</title>
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="screen" width="256" height="240"></canvas>
+  <div id="touch"></div>
+  <div id="hint">ARROWS/WASD MOVE &middot; SPACE Z W JUMP &middot; X SHIFT RUN/FIRE &middot; P PAUSE &middot; M MUTE<br>
+  ALL CODE, ART &amp; MUSIC ARE HAND-BUILT IN THIS REPO &mdash; ZERO EXTERNAL ASSETS</div>
+</div>
+
+<script src="js/01-namespace.js"></script>
+<script src="js/02-constants.js"></script>
+<script src="js/03-utils.js"></script>
+<script src="js/04-input.js"></script>
+<script src="js/05-font.js"></script>
+<script src="js/06-sprites.js"></script>
+<script src="js/07-audio.js"></script>
+<script src="js/08-physics.js"></script>
+<script src="js/09-tiles.js"></script>
+<script src="js/10-levels.js"></script>
+<script src="js/11-objects.js"></script>
+<script src="js/12-enemies.js"></script>
+<script src="js/13-player.js"></script>
+<script src="js/14-level.js"></script>
+<script src="js/15-hud.js"></script>
+<script src="js/16-game.js"></script>
+
+<script>
+window.addEventListener('load', function () {
+  window.BROS.Game.boot();
+});
+</script>
+</body>
+</html>

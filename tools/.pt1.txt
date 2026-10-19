@@ -1,0 +1,176 @@
+// PLAN: docs/plan/17-testing-and-tuning.md
+// Integration tests for js/14-level.js: real Level runtime on synthetic
+// maps (pole+Keep tail, as parseLevel requires) plus a smoke run on the
+// real generated levels.  Scripted fake Input (swapped into BROS.Input)
+// and a recording fake Audio (swapped into BROS.Audio).  draw() is never
+// called here (per plan 17: Node tests stay DOM-free).
+// Run:  node tools/test-level.mjs
+'use strict';
+import { load } from './loadmodules.mjs';
+
+const { BROS } = load([
+  'js/01-namespace.js', 'js/02-constants.js', 'js/03-utils.js',
+  'js/08-physics.js', 'js/09-tiles.js', 'js/10-levels.js',
+  'js/11-objects.js', 'js/12-enemies.js', 'js/13-player.js', 'js/14-level.js'
+]);
+const C = BROS.C;
+const Tiles = BROS.Tiles;
+
+let passed = 0, failed = 0;
+function ok(cond, msg) {
+  if (cond) { passed++; }
+  else { console.log('  FAIL ' + msg); }
+}
+function near(a, b, tol, msg) { ok(Math.abs(a - b) <= tol, msg + ' (' + a + ' vs ' + b + ')'); }
+function count(log, name) { let n = 0; for (const s of log) if (s === name) n++; return n; }
+
+/* --- scripted fake Input (same shape as test-player.mjs) ------------------ */
+function fakeInput() {
+  const held = Object.create(null), prev = Object.create(null);
+  let tick = 0, lastJumpPress = -9999;
+  return {
+    press(a) { held[a] = true; if (a === 'jump') lastJumpPress = tick; },
+    release(a) { held[a] = false; },
+    down(a) { return !!held[a]; },
+    pressed(a) { return !!held[a] && !prev[a]; },
+    released(a) { return !held[a] && !!prev[a]; },
+    jumpBufferFrames() { return tick - lastJumpPress; },
+    __step() { tick++; for (const a in held) prev[a] = held[a]; }
+  };
+}
+
+/* --- recording fake Audio -------------------------------------------------- */
+function fakeAudio(rec) {
+  return {
+    sfx: function (n) { rec.sfxLog.push(n); },
+    stopMusic: function (f) { rec.stopLog.push(f); },
+    playMusic: function () {}, setPaused: function () {}, ensure: function () {},
+    unlock: function () {}, toggleMute: function () {}, tickMusic: function () {},
+    tickCleanup: function () {}, currentMusic: function () { return null; },
+    musicDone: function () { return true; }
+  };
+}
+
+/* --- synthetic map template: 32 cols x 15 rows, pole@26, Keep@28-31 ------- */
+const COLS = 32, POLE = 26;
+function mkDef(name, tweak, opts) {
+  if (typeof opts === 'function') opts = { preset: opts };   // H/L1 pass a gs preset fn, E an opts obj
+  opts = opts || {};
+  const rows = [];
+  for (let r = 0; r < 15; r++) rows.push(new Array(COLS).fill('.'));
+  for (let c = 0; c < COLS; c++) { rows[13][c] = 'G'; rows[14][c] = 'G'; }
+  for (let r = 8; r <= 12; r++) rows[r][POLE] = 'I';
+  for (let r = 9; r <= 12; r++) for (let c = POLE + 2; c <= POLE + 5; c++) rows[r][c] = 'K';
+  if (opts.pit) for (const c of opts.pit) { rows[13][c] = '.'; rows[14][c] = '.'; }
+  if (tweak) tweak(rows);
+  return {
+    name: name, theme: opts.theme || 'day', time: opts.time || 300,
+    startCol: 2, preset: opts.preset || null,
+    map: rows.map(function (r) { return r.join(''); })
+  };
+}
+
+/* --- level context ---------------------------------------------------------- */
+function mkCtx(def, preset) {
+  const rec = { sfxLog: [], stopLog: [] };
+  const I = fakeInput();
+  BROS.Input = I;
+  BROS.Audio = fakeAudio(rec);
+  const gs = { score: 0, coins: 0, lives: 3 };
+  if (def.preset) def.preset(gs);
+  if (preset) preset(gs);
+  const level = new BROS.Level(def, gs);
+  const ctx = {
+    level: level, gs: gs, I: I, p: level.player, rec: rec,
+    popups: new Set(), bumpSeen: new Set(), fxKinds: new Set(), powers: new Set(),
+    cameraLog: []
+  };
+  return ctx;
+}
+function scan(ctx) {
+  ctx.cameraLog.push(ctx.level.camX);
+  for (const f of ctx.level.fx) {
+    if (f.fx === 'popup') ctx.popups.add(f.text);
+    else if (f.fx) ctx.fxKinds.add(f.fx);
+  }
+  for (const b of ctx.level.bumps) ctx.bumpSeen.add(b.col + ',' + b.row);
+  for (const it of ctx.level.items) ctx.powers.add(it.power);
+}
+function run(ctx, n, pre) {
+  for (let i = 0; i < n; i++) {
+    if (pre) pre(i);
+    ctx.level.update();
+    ctx.I.__step();
+    scan(ctx);
+  }
+}
+
+const POLE_MID = POLE * C.TILE + C.TILE / 2;             // 424
+const POLE_BASE_FEET = 13 * C.TILE;                      // 208 (ground surface)
+const POLE_TOP_FEET = 8 * C.TILE;                        // 128
+const KEEP_TARGET = (POLE + 2) * C.TILE;                 // 448
+
+/* ================================================================== *
+ * A. flagpole takeover: pole-top grab band, phase order, tally
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-FLAG'));
+  const { level, gs, p } = ctx;
+  p.x = POLE_MID - p.w / 2;                    // centered on the pole, at its tip
+  p.y = POLE_TOP_FEET - p.h;
+  run(ctx, 1);
+  ok(level.flagPhase === 'grab', 'A: pole grab started');
+  near(gs.score, 8000, 0.001, 'A: pole-top grab scores top band 8000');
+  ok(count(ctx.rec.sfxLog, 'flagpole') === 1, 'A: flagpole sfx once');
+  ok(ctx.rec.stopLog.length >= 1, 'A: music stopped at flag grab');
+  ok(ctx.popups.has('8000'), 'A: 8000 popup shown');
+
+  const phases = [];
+  let prevPhase = 'grab', frames = 0;
+  while (!level.finished && frames < 260) {
+    run(ctx, 1); frames++;
+    if (level.flagPhase !== prevPhase) { phases.push(level.flagPhase); prevPhase = level.flagPhase; }
+  }
+  ok(level.finished === 'complete', 'A: flag sequence completes');
+  ok(frames <= 200, 'A: sequence length ' + frames + ' <= 200f');
+  ok(phases.join(',') === 'slide,hop,walk,enter,done', 'A: phase order ' + phases.join(','));
+  ok(count(ctx.rec.sfxLog, 'gate') === 1, 'A: Keep door sfx once');
+  ok(count(ctx.rec.sfxLog, 'tick') === 0, 'A: no ticks before tally');
+  near(level.flagY, POLE_TOP_FEET + 2, 0.001, 'A: flag ends at pole top');
+  ok(gs.lives === 3, 'A: flag costs no lives');
+
+  let tf = 0, done = false;
+  while (!done && tf < 400) { done = level.tally(); tf++; }
+  ok(done, 'A: tally finishes');
+  ok(tf === 150, 'A: 300-unit tally takes 150 frames (got ' + tf + ')');   // < 3s plan cap
+  const ticks = count(ctx.rec.sfxLog, 'tick');
+  ok(ticks >= 45 && ticks <= 52, 'A: tick rate ' + ticks + ' in [45,52]');
+  ok(ticks * 3 <= tf + 6, 'A: tick spacing >= 3 frames');
+  near(gs.score, 8000 + 300 * C.TIME_FLAG_BONUS, 0.001, 'A: tally score 8000+15000');
+  ok(level.timeLeft === 0, 'A: tally empties clock');
+  ok(ctx.level.hudData().hurry === true, 'A: hud hurry flag after tally');
+}
+
+/* ================================================================== *
+ * B. walking into the pole: ground band = 100, grab pose, full sequence
+ * ================================================================== */
+{
+  const ctx = mkCtx(mkDef('T-WALK'));
+  const { level, gs, I, p } = ctx;
+  I.press('right');
+  let snap = null, frames = 0;
+  while (!level.finished && frames < 500) {
+    run(ctx, 1); frames++;
+    if (!snap && level.flagPhase === 'grab') {
+      snap = { x: p.x, facing: p.facing, feet: p.y + p.h, score: gs.score };
+    }
+  }
+  ok(level.finished === 'complete', 'B: walker completes flag sequence (' + frames + 'f)');
+  ok(snap !== null, 'B: grab observed while walking');
+  if (snap) {
+    near(snap.x, POLE_MID - p.w + C.FLAG_GRAB_X, 0.001, 'B: grabbed pose straddles pole');
+    ok(snap.facing === -1, 'B: grabbed pose faces pole');
+    near(snap.feet, POLE_BASE_FEET, 0.001, 'B: ground grab feet on base');
+    near(snap.score, 100, 0.001, 'B: lowest band scores 100');
+  }
+}
