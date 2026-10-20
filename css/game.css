@@ -84,8 +84,8 @@ html, body {
 #touch button {
   width: 15vmin;
   height: 15vmin;
-  min-width: 56px;
-  min-height: 56px;
+  min-width: 52px;
+  min-height: 52px;
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 14px;
   background: rgba(10, 12, 30, 0.34);
@@ -102,6 +102,33 @@ html, body {
   -webkit-user-select: none;
 }
 #touch button:active { background: rgba(255, 255, 255, 0.45); }
+/* the A/B action pad: roomier gap so thumbs never brush both at once */
+#touch .cluster.act { gap: 26px; }
+#touch #btn-run, #touch #btn-jump {
+  width: 18vmin;
+  height: 18vmin;
+  min-width: 64px;
+  min-height: 64px;
+  font-size: 8vmin;
+}
+/* visual-mode tap: round chip centered just above the two pads — 18vmin bottom
+ * offset clears the A/B row height at any viewport size */
+#touch #btn-mode {
+  position: absolute;
+  left: 50%;
+  bottom: calc(18vmin + 12px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: 11vmin;
+  height: 11vmin;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  font-size: 3.8vmin;
+  letter-spacing: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(10, 12, 30, 0.5);
+  flex-shrink: none;
+}
 @media (pointer: coarse) {
   #touch {
     display: flex;

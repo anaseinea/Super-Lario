@@ -43,6 +43,9 @@ untouched (in flat mode the wrapping proxy just forwards every ctx call).
   load 17).
 - `?pop=1` boots the POP mode; `V` key toggles mid-game; if `vendor/three.min.js`
   is missing, pop falls back to flat on the first frame without crashing.
+- Touch devices: `?pop=1` URL param boots POP, and a round `2.5D` chip button
+  (`#btn-mode`, built by `buildTouch`, wired straight to `R3D.toggle` — it is
+  not an Input action) sits centered above the pads to flip visuals mid-run.
 - HUD/Screens stay pixel-crisp in both modes (separate `#overlay` canvas).
 - No gameplay state is touched by the recorder — pure observation.
 

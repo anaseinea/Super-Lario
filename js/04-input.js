@@ -72,14 +72,28 @@
       const left = document.createElement('div');
       left.className = 'cluster';
       const right = document.createElement('div');
-      right.className = 'cluster';
+      right.className = 'cluster act';   // action pad: roomier gap + bigger A/B (CSS)
       makeBtn(left, 'btn-left', '\u25C0', 'left');
       makeBtn(left, 'btn-down', '\u25BC', 'down');
       makeBtn(left, 'btn-right', '\u25B6', 'right');
       makeBtn(right, 'btn-run', 'B', 'run');
       makeBtn(right, 'btn-jump', 'A', 'jump');
+      // phone-side visual-mode switch: a round tap target bottom-center. It is
+      // NOT a game input — it calls BROS.R3D directly (same as the V key does).
+      const mode = document.createElement('button');
+      mode.id = 'btn-mode';
+      mode.type = 'button';
+      mode.textContent = (BROS.R3D && BROS.R3D.pop) ? '2D' : '2.5D';
+      mode.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        if (!BROS.R3D) return;
+        BROS.R3D.toggle();
+        mode.textContent = BROS.R3D.pop ? '2D' : '2.5D';
+      });
+      mode.addEventListener('contextmenu', function (e) { e.preventDefault(); });
       container.appendChild(left);
       container.appendChild(right);
+      container.appendChild(mode);   // absolutely positioned (CSS): keeps the 2-cluster flex row intact
     },
 
     update: function () {

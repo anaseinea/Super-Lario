@@ -54,7 +54,11 @@ level tracks, clear, game-over). SFX and the M key still work. Flip the flag to
 
 Touch devices: when the media query `pointer: coarse` matches (phones/tablets)
 a fixed on-screen pad appears — d-pad ◀ ▼ ▶ in the bottom-left corner, B (run)
-and A (jump) in the bottom-right, sized in viewport units and translucent. The
+and A (jump) in the bottom-right (these two are sized up and spaced wider apart
+so thumbs can't brush both at once), all sized in viewport units and
+translucent. A round **2.5D** chip floats centered just above both pads: tap it
+to flip between the flat and POP visual modes (it re-labels itself `2D` while
+in POP mode; it is a pure render switch — it never feeds the game input). The
 A button also confirms in menus (SMB-style: tap A on the title to start). Built
 by `BROS.Input.buildTouch`, styled in `css/game.css`.
 
