@@ -262,7 +262,8 @@
    * ------------------------------------------------------------------ */
   function chomper(col, row, pipe) {
     const mouthTopY = pipe.row * T;
-    const e = base('chomper', col * T, mouthTopY, 16, 0);
+    // centred on the 2-tile pipe mouth, not on whichever half carries the seed
+    const e = base('chomper', pipe.col * T + 8, mouthTopY, 16, 0);
     e.pipe = pipe;
     e.mouthTopY = mouthTopY;
     e.raise = 0;

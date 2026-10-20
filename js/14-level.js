@@ -46,12 +46,14 @@
    *   camX = max(camX, clamp(playerCenter - 96, 0, levelPx - VIEW_W))
    * ------------------------------------------------------------------ */
   function Camera(levelPx) {
-    const maxScroll = Math.max(0, levelPx - C.VIEW_W);
     let shakeT = 0, shakeAmp = 0;
     const cam = {
       camX: 0,
       follow: function (playerCenterX) {
-        cam.camX = Math.max(cam.camX, clamp(playerCenterX - 96, 0, maxScroll));
+        // VIEW_W may grow at boot (wide screens fill edge-to-edge), so read it live
+        const maxScroll = Math.max(0, levelPx - C.VIEW_W);
+        const anchor = Math.max(96, Math.floor(C.VIEW_W / 2) - 32);
+        cam.camX = Math.max(cam.camX, clamp(playerCenterX - anchor, 0, maxScroll));
         return cam.camX;
       },
       shake: function (frames, amp) { shakeT = frames; shakeAmp = amp; },
@@ -113,25 +115,42 @@
        columns whose top solid tile is ground, away from pipes/pole/keep. */
     const decor = [];
     if (this.theme !== 'cave') {
+      const surfaceRow = [];
+      const decorBlocked = [];
       for (let c = 0; c < this.cols; c++) {
         let s = -1;
         for (let r = 0; r < this.rows; r++) {
           if (parsed.solidAt(c, r) && !parsed.solidAt(c, r - 1)) { s = r; break; }
         }
-        const surfaceOK = s >= 0 && parsed.tileAt(c, s) === TILES.GROUND && !pipeCell[c + ',' + s];
+        surfaceRow.push(s);
         const nearPole = parsed.poleCol >= 0 && c >= parsed.poleCol - 2 && c <= parsed.poleCol + 3;
         let onKeep = false;
         for (let k = 0; k < this.keepBlocks.length; k++) {
           const kb = this.keepBlocks[k];
           if (c >= kb.col - 1 && c <= kb.col + 4) onKeep = true;
         }
-        if (c % 9 === 2) decor.push({ name: 'cloud1', x: c * T, y: T });
-        if (c % 11 === 7) decor.push({ name: 'cloud2', x: c * T, y: 3 * T });
-        if (surfaceOK && !nearPole && !onKeep) {
-          if (c % 6 === 3) decor.push({ name: 'bush', x: c * T, bottom: s * T });
-          if (c % 11 === 2) decor.push({ name: 'hill_big', x: c * T, bottom: s * T });
-          if (c % 9 === 6) decor.push({ name: 'hill_small', x: c * T, bottom: s * T });
+        const overPipe = s >= 0 && (pipeCell[c + ',' + s] || pipeCell[c + ',' + (s - 1)]);
+        decorBlocked.push(!!overPipe || nearPole || onKeep);
+      }
+      /** a 48/32 px prop needs every column under it to be flat, pipe-free
+       *  ground at the same surface row, or it reads as clipped. */
+      const flatGround = function (c0, span, s) {
+        if (c0 + span > self.cols) return false;
+        for (let cc = c0; cc < c0 + span; cc++) {
+          if (decorBlocked[cc] || surfaceRow[cc] !== s) return false;
+          if (parsed.tileAt(cc, s) !== TILES.GROUND) return false;
         }
+        return true;
+      };
+      for (let c = 0; c < this.cols; c++) {
+        if (c % 9 === 2 && c * T + 32 <= this.levelPx) decor.push({ name: 'cloud1', x: c * T, y: T });
+        if (c % 11 === 7 && c * T + 24 <= this.levelPx) decor.push({ name: 'cloud2', x: c * T, y: 3 * T });
+        const s = surfaceRow[c];
+        if (s < 0 || decorBlocked[c]) continue;
+        if (parsed.tileAt(c, s) !== TILES.GROUND) continue;
+        if (c % 6 === 3 && flatGround(c, 3, s)) decor.push({ name: 'bush', x: c * T, bottom: s * T });
+        if (c % 11 === 2 && flatGround(c, 3, s)) decor.push({ name: 'hill_big', x: c * T, bottom: s * T });
+        if (c % 9 === 6 && flatGround(c, 2, s)) decor.push({ name: 'hill_small', x: c * T, bottom: s * T });
       }
     }
 
@@ -647,7 +666,8 @@
       ctx.fillStyle = SKY[self.theme] || SKY.day;
       ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
       ctx.save();
-      ctx.translate(self.camera.offsetX(), self.camera.offsetY());
+      // scroll the world by -camX (plus shake offsets); entities render at world coords
+      ctx.translate(self.camera.offsetX() - self.camX, self.camera.offsetY());
 
       /* background decor (behind tiles) */
       const camR = self.camX + C.VIEW_W;

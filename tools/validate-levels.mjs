@@ -19,6 +19,12 @@ import { renderRows } from './genmaps-lib.mjs';
 import { build as build11 } from './design-11.mjs';
 import { build as build12 } from './design-12.mjs';
 import { build as build13 } from './design-13.mjs';
+import { build as build14 } from './design-14.mjs';
+import { build as build15 } from './design-15.mjs';
+import { build as build16 } from './design-16.mjs';
+import { build as build17 } from './design-17.mjs';
+import { build as build18 } from './design-18.mjs';
+import { build as build19 } from './design-19.mjs';
 
 const { BROS } = load([
   'js/01-namespace.js',
@@ -36,9 +42,9 @@ function ok(cond, msg) { if (!cond) throw new Error('assert: ' + msg); }
 /* ------------------------------------------------------------------ *
  * 1. parse every shipped map
  * ------------------------------------------------------------------ */
-const designs = [build11(), build12(), build13()];
+const designs = [build11(), build12(), build13(), build14(), build15(), build16(), build17(), build18(), build19()];
 const levels = BROS.LEVELS;
-if (levels.length !== 3) fail('expected 3 levels in BROS.LEVELS, got ' + levels.length);
+if (levels.length !== 9) fail('expected 9 levels in BROS.LEVELS, got ' + levels.length);
 
 for (let i = 0; i < levels.length; i++) {
   const def = levels[i];

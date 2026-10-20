@@ -20,8 +20,14 @@ html, body {
   background: #000;
   touch-action: none;
   outline: 2px solid #2b2e55;
+  flex-shrink: none;
 }
+/* hint stays out of flow: it must never squeeze a full-fit canvas */
 #hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 6px;
   color: #6b719e;
   font-size: 12px;
   letter-spacing: 1px;
@@ -29,28 +35,48 @@ html, body {
   line-height: 1.6;
   padding: 0 10px;
 }
+/* touch pad: fixed overlay, d-pad bottom-left, actions bottom-right */
 #touch {
   display: none;
-  width: 256px;
-  justify-content: space-between;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 50;
   user-select: none;
   -webkit-user-select: none;
 }
-#touch .cluster { display: flex; gap: 8px; }
+#touch .cluster {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
 #touch button {
-  width: 64px;
-  height: 64px;
-  border: 0;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.16);
+  width: 15vmin;
+  height: 15vmin;
+  min-width: 56px;
+  min-height: 56px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 14px;
+  background: rgba(10, 12, 30, 0.34);
   color: #fff;
-  font-size: 22px;
+  font-size: 7vmin;
   font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
 }
-#touch button:active { background: rgba(255, 255, 255, 0.4); }
+#touch button:active { background: rgba(255, 255, 255, 0.45); }
 @media (pointer: coarse) {
-  #touch { display: flex; }
+  #touch {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 12px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
   #hint { display: none; }
 }

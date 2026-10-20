@@ -1,9 +1,10 @@
 # SUPER GUMDROP BROS.
 
 A dependency-free, single-page browser platformer — 100% original homage.
-Hero: **Gumdrop**, a candy guy racing through Sugar Meadows, the Candy Mine
-and Peppermint Dusk. All code, art, audio and level design are authored from
-scratch in this repository: no external assets, no libraries, no build step.
+Hero: **Gumdrop**, a candy guy racing through 9 hand-authored levels across
+three worlds — Sugar Meadows, the Candy Mine and Peppermint Dusk. All code,
+art, audio and level design are authored from scratch in this repository:
+no external assets, no libraries, no build step.
 
 See `docs/plan/README.md` for the build plan and `docs/plan/NN-*.md` for the
 step contracts each source file implements.
@@ -25,8 +26,11 @@ python -m http.server 8000   # then open http://localhost:8000/
 ```
 
 The game boots itself: `index.html` loads `js/01 … js/16` in order and calls
-`BROS.Game.boot()`, which fits the 256×240 canvas to the window at integer
-scale and wires keyboard + on-screen touch controls.
+`BROS.Game.boot()`, which resizes the canvas to fill the window edge-to-edge:
+wide screens widen the VIEW (more world columns on screen, HUD re-anchored to
+the right edge), narrow/portrait screens scale the base 256×240 view to the
+full window width with letterbox bands — pixels never crop, and phone players
+always get the full width.
 
 ## Controls
 
@@ -39,7 +43,11 @@ scale and wires keyboard + on-screen touch controls.
 | Pause (mid-level, P toggles) | P |
 | Mute music/SFX | M |
 
-Touch devices: on-screen control pad is built into `#touch` by `BROS.Input.buildTouch`.
+Touch devices: when the media query `pointer: coarse` matches (phones/tablets)
+a fixed on-screen pad appears — d-pad ◀ ▼ ▶ in the bottom-left corner, B (run)
+and A (jump) in the bottom-right, sized in viewport units and translucent. The
+A button also confirms in menus (SMB-style: tap A on the title to start). Built
+by `BROS.Input.buildTouch`, styled in `css/game.css`.
 
 ## Test suite (all must pass)
 

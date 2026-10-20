@@ -33,7 +33,10 @@
       game.input.clear();
     };
     game.acceptGesture = function () {
-      return game.lock === 0 && game.input.consume('start');
+      // SMB-style confirm: Enter/tap A both advance menus; touch pads have no
+      // START button, so the jump button doubles as the menu gesture.
+      if (game.lock !== 0) return false;
+      return game.input.consume('start') || game.input.consume('jump');
     };
     game.buildLevel = function (idx) {
       game.levelIdx = idx;
@@ -198,7 +201,8 @@
   let RUN = null;
   BROS.DEBUG = {
     grantCoins: function (n) { if (RUN) RUN.gs.coins = (RUN.gs.coins + n) % 100; },
-    grantLives: function (n) { if (RUN) RUN.gs.lives = Math.min(9, RUN.gs.lives + n); }
+    grantLives: function (n) { if (RUN) RUN.gs.lives = Math.min(9, RUN.gs.lives + n); },
+    peek: function () { return RUN; }
   };
 
   /* ---------------- boot: canvas fit + fixed-step rAF loop ---------------- */
@@ -217,13 +221,26 @@
       if (touch && !touch.hasChildNodes()) BROS.Input.buildTouch(touch);
       BROS.Sprites.ensure('day');          // title-screen art before any level exists
 
-      /* plan 14 Game.resize(): integer scale, canvas style px size */
+      /* plan 14 Game.resize(): the view fills the window edge-to-edge.
+       * Wide screens widen the VIEW (more world columns on screen — VIEW_W is
+       * read live by camera/HUD/draw); portrait windows snap back to the base
+       * 256-wide view so pixels stay big, with letterbox bands, never crop. */
+      const baseW = C.VIEW_W;               // captured while still 256
       const resize = function () {
         const availW = window.innerWidth, availH = window.innerHeight;
-        let k = Math.floor(Math.min(availW / C.VIEW_W, availH / C.VIEW_H));
-        if (k < 1) k = 1;
-        cv.style.width = (C.VIEW_W * k) + 'px';
-        cv.style.height = (C.VIEW_H * k) + 'px';
+        let k;
+        if (availW * C.VIEW_H >= availH * baseW && availH >= C.VIEW_H) {
+          k = availH / C.VIEW_H;
+          C.VIEW_W = Math.max(baseW, Math.round(availW / k));
+        } else {
+          k = Math.min(availW / baseW, availH / C.VIEW_H);
+          if (k < 1) k = 1;
+          C.VIEW_W = baseW;
+        }
+        cv.width = C.VIEW_W;
+        cv.height = C.VIEW_H;
+        cv.style.width = Math.round(C.VIEW_W * k) + 'px';
+        cv.style.height = Math.round(C.VIEW_H * k) + 'px';
       };
       BROS.Game.resize = resize;
 

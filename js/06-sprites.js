@@ -101,9 +101,9 @@
   };
 
   const THEMES = {
-    day: { X: '#3fae4c', g: '#2f7d38', T: '#a8663a', D: '#8a5028', d: '#6e3d1e' },
-    cave: { X: '#9a93c9', g: '#5a5490', T: '#5a5490', D: '#453f70', d: '#3c3666' },
-    dusk: { X: '#e77fa0', g: '#b23a68', T: '#b23a68', D: '#8f2c52', d: '#7c2446' }
+    day: { X: '#59c95e', L: '#90e28d', g: '#357e36', T: '#a2602e', D: '#7d4620', d: '#592e15' },
+    cave: { X: '#8f87c9', L: '#b8b0de', g: '#5a5390', T: '#5a5390', D: '#453f70', d: '#322c5a' },
+    dusk: { X: '#e57ba1', L: '#f7b6cb', g: '#b23869', T: '#b23869', D: '#8f2c52', d: '#6e1e3c' }
   };
   const T_BRICK = {
     day: { B: '#c06a34', b: '#7c3c17', m: '#ecc9a2' },
@@ -280,23 +280,47 @@
     const rows = [];
     for (let y = 0; y < 16; y++) {
       const taken = [];
-      if (cap && y <= 3) {
-        const marks = [];
-        for (const x of pick(rng, y === 0 ? 3 : 4, 1, 14, taken)) marks.push(['g', x]);
+      const marks = [];
+      if (cap && y === 0) {
+        for (const x of pick(rng, 3, 2, 13, taken)) marks.push(['g', x]);
+        for (const x of pick(rng, 2, 2, 13, taken)) marks.push(['L', x]);
         rows.push(speckleRow(16, 'X', marks));
-      } else {
-        const deep = y >= 13;
-        const marks = [];
-        for (const x of pick(rng, deep ? 4 : 3, 1, 14, taken)) marks.push([deep ? 'T' : 'D', x]);
+      } else if (cap && y === 1) {
+        for (const x of pick(rng, 5, 1, 13, taken)) marks.push(['g', x]);
+        for (const x of pick(rng, 1, 2, 13, taken)) marks.push(['L', x]);
+        rows.push(speckleRow(16, 'X', marks));
+      } else if (cap && y === 2) {
+        const v = Math.floor(seed / 13) % 3;
+        for (let x = 0; x < 16; x++) if ((x + v) % 3 === 0) marks.push(['g', x]);
+        for (const x of pick(rng, 2, 1, 13, taken)) marks.push(['L', x]);
+        rows.push(speckleRow(16, 'X', marks));
+      } else if (cap && y === 3) {
+        for (const x of pick(rng, 3, 1, 14, taken)) marks.push(['X', x]);
+        for (const x of pick(rng, 3, 1, 14, taken)) marks.push(['T', x]);
+        for (const x of pick(rng, 2, 1, 14, taken)) marks.push(['d', x]);
+        rows.push(speckleRow(16, 'g', marks));
+      } else if (cap && y === 4) {
+        for (const x of pick(rng, 2, 2, 13, taken)) marks.push(['g', x]);   // grass roots
+        for (const x of pick(rng, 3, 1, 14, taken)) marks.push(['D', x]);
+        for (const x of pick(rng, 3, 1, 14, taken)) marks.push(['d', x]);
+        rows.push(speckleRow(16, 'T', marks));
+      } else if (y >= 13) {
+        for (const x of pick(rng, 3, 1, 14, taken)) marks.push(['T', x]);   // buried pebbles catch light
         for (const x of pick(rng, 4, 1, 14, taken)) marks.push(['d', x]);
-        rows.push(speckleRow(16, deep ? 'D' : 'T', marks));
+        rows.push(speckleRow(16, 'D', marks));
+      } else {
+        for (const x of pick(rng, 3, 1, 14, taken)) marks.push(['D', x]);
+        for (const x of pick(rng, 4, 1, 14, taken)) marks.push(['d', x]);
+        rows.push(speckleRow(16, 'T', marks));
       }
     }
     // right-edge shading: gives a run of ground visible block seams
     for (let y = 0; y < 16; y++) {
       const line = rows[y].split('');
       line[15] = (cap && y <= 3) ? 'g' : 'D';
-      if (y === 0 && cap) line[15] = 'X';
+      if (cap && y === 0) line[15] = 'X';
+      if (cap && y === 3) line[15] = 'd';
+      if (y === 15) line[15] = 'd';
       rows[y] = line.join('');
     }
     return rows;
@@ -800,34 +824,39 @@
 
   // ============ DECOR (parallax props; never collide) ============
   const DEC = {
-    day: { g: '#43a047', gd: '#2e7031', gl: '#7ac97d', c: '#f4f4f4', cd: '#cfd4da' },
-    cave: { g: '#3c3666', gd: '#2b2557', gl: '#5f5896', c: '#4a4478', cd: '#37315f' },
-    dusk: { g: '#7c2446', gd: '#5f1832', gl: '#a8456b', c: '#f0b7c9', cd: '#c98fa4' }
+    day: { g: '#43a047', gd: '#2e7031', gl: '#7ac97d', c: '#f7f9fc', cd: '#c8d2de', cl: '#ffffff' },
+    cave: { g: '#3c3666', gd: '#2b2557', gl: '#5f5896', c: '#4a4478', cd: '#37315f', cl: '#645d9c' },
+    dusk: { g: '#7c2446', gd: '#5f1832', gl: '#a8456b', c: '#f4c0d2', cd: '#c98fa4', cl: '#ffe3ec' }
   };
   function buildDecor(theme) {
     const pal = DEC[theme] || DEC.day;
 
     newFrame('hill_big', 48, 24, function (ctx) {
-      dome(ctx, 20, 23, 20, 22, pal.g, pal.gd, pal.gl);
-      px(ctx, 14, 12, pal.gl); px(ctx, 15, 11, pal.gl);
+      dome(ctx, 23, 23, 22, 23, pal.g, pal.gd, pal.gl);
+      px(ctx, 15, 14, pal.gl); px(ctx, 16, 13, pal.gl); px(ctx, 17, 12, pal.gl);
     });
-    newFrame('hill_small', 32, 16, function (ctx) { dome(ctx, 14, 15, 14, 14, pal.g, pal.gd, pal.gl); });
+    newFrame('hill_small', 32, 16, function (ctx) {
+      dome(ctx, 15, 15, 14, 15, pal.g, pal.gd, pal.gl);
+      px(ctx, 10, 9, pal.gl); px(ctx, 11, 8, pal.gl);
+    });
     newFrame('bush', 48, 16, function (ctx) {
-      dome(ctx, 14, 15, 12, 12, pal.g, pal.gd, pal.gl);
-      dome(ctx, 30, 15, 14, 15, pal.g, pal.gd, pal.gl);
-      dome(ctx, 42, 15, 8, 9, pal.g, pal.gd, pal.gl);
+      dome(ctx, 10, 15, 9, 13, pal.g, pal.gd, pal.gl);
+      dome(ctx, 24, 15, 13, 15, pal.g, pal.gd, pal.gl);
+      dome(ctx, 38, 15, 9, 13, pal.g, pal.gd, pal.gl);
+      px(ctx, 6, 4, pal.gl); px(ctx, 23, 2, pal.gl); px(ctx, 24, 1, pal.gl); px(ctx, 41, 4, pal.gl);
+      px(ctx, 18, 13, pal.gd); px(ctx, 30, 13, pal.gd);
     });
     newFrame('cloud1', 32, 16, function (ctx) {
-      bowl(ctx, 10, 4, 9, 6, pal.c, pal.cd, null);
-      bowl(ctx, 22, 6, 8, 5, pal.c, pal.cd, null);
-      rect(ctx, 2, 9, 28, 5, pal.c);
-      rect(ctx, 2, 14, 28, 1, pal.cd);
+      dome(ctx, 9, 10, 8, 9, pal.c, pal.cd, pal.cl);
+      dome(ctx, 21, 11, 9, 10, pal.c, pal.cd, pal.cl);
+      rect(ctx, 2, 10, 29, 4, pal.c);
+      rect(ctx, 3, 14, 25, 1, pal.cd);
     });
     newFrame('cloud2', 24, 12, function (ctx) {
-      bowl(ctx, 8, 3, 7, 5, pal.c, pal.cd, null);
-      bowl(ctx, 17, 4, 6, 4, pal.c, pal.cd, null);
+      dome(ctx, 8, 8, 7, 8, pal.c, pal.cd, pal.cl);
+      dome(ctx, 17, 9, 6, 7, pal.c, pal.cd, pal.cl);
       rect(ctx, 1, 8, 22, 3, pal.c);
-      rect(ctx, 1, 11, 22, 1, pal.cd);
+      rect(ctx, 2, 11, 20, 1, pal.cd);
     });
   }
 

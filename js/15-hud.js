@@ -20,8 +20,7 @@
 
   /* ---------- HUD row (fixed screen-space, y0..14, drawn over the level) ---- */
   const HUD_Y = 2, HUD_ICON_Y = 0;
-  const HUD_LABEL = 16, HUD_SCORE = 46, HUD_ICON = 88, HUD_COINS = 104,
-        HUD_WORLD = 132, HUD_TIME = 188, HUD_LIVES = 238;
+  const HUD_LABEL = 16, HUD_SCORE = 46, HUD_ICON = 88, HUD_COINS = 104;
   const HUD_WHITE = '#ffffff', HUD_RED = '#ff3b30';
 
   BROS.HUD = { charsetOK: true };
@@ -32,10 +31,14 @@
     const icon = S.get ? S.get('bonbon0') : null;
     if (icon) ctx.drawImage(icon, HUD_ICON, HUD_ICON_Y);
     F.drawText(ctx, 'X' + pad(hud.coins, 3), HUD_COINS, HUD_Y, { color: HUD_WHITE });
-    F.drawText(ctx, 'WORLD ' + hud.worldName, HUD_WORLD, HUD_Y, { color: HUD_WHITE });
-    F.drawText(ctx, 'TIME ' + pad(hud.timeLeft, 3), HUD_TIME, HUD_Y,
+    const wide = C.VIEW_W > 384;
+    const worldX = wide ? C.VIEW_W - 148 : 132;
+    const timeX = wide ? C.VIEW_W - 68 : 188;
+    const livesX = wide ? C.VIEW_W - 18 : 238;
+    F.drawText(ctx, 'WORLD ' + hud.worldName, worldX, HUD_Y, { color: HUD_WHITE });
+    F.drawText(ctx, 'TIME ' + pad(hud.timeLeft, 3), timeX, HUD_Y,
       { color: hud.hurry ? HUD_RED : HUD_WHITE });
-    F.drawText(ctx, 'X' + hud.lives, HUD_LIVES, HUD_Y, { color: HUD_WHITE });
+    F.drawText(ctx, 'X' + hud.lives, livesX, HUD_Y, { color: HUD_WHITE });
   };
   for (const s of ['GUM', 'WORLD ', 'TIME ', 'X'])
     for (const ch of s) if (!F.hasChar(ch)) BROS.HUD.charsetOK = false;
@@ -75,10 +78,11 @@
   BROS.Screens.title = function (ctx) {
     ctx.fillStyle = SKY_DAY;
     ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
-    const drift = (BROS.Screens.blink * C.TITLE_CLOUD_DRIFT) % 216;
+    const span = Math.max(64, C.VIEW_W - 40);
+    const drift = (BROS.Screens.blink * C.TITLE_CLOUD_DRIFT) % span;
     for (const seed of [[4, 16, 'cloud1'], [90, 40, 'cloud2'], [180, 24, 'cloud1']]) {
       const im = S.get(seed[2]);
-      if (im) ctx.drawImage(im, 4 + ((seed[0] + drift) % 216), seed[1]);
+      if (im) ctx.drawImage(im, 4 + ((seed[0] + drift) % span), seed[1]);
     }
     center(ctx, T_SUPER, 56, 2, GOLD);
     center(ctx, T_BROS, 80, 1, PINK);
@@ -88,7 +92,7 @@
     center(ctx, T_LEGEND1, 184, 1, TAUPE);
     center(ctx, T_LEGEND2, 196, 1, TAUPE);
     /* ground strip along the bottom (tiles, not level sprites) */
-    for (let c = 0; c < 16; c++) {
+    for (let c = 0; c < Math.ceil(C.VIEW_W / 16); c++) {
       const g = S.get(BROS.Tiles.groundSprite(c, 13, true));
       if (g) ctx.drawImage(g, c * 16, 208);
       const d = S.get(BROS.Tiles.groundSprite(c, 14, false));
