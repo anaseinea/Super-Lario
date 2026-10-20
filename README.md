@@ -74,14 +74,19 @@ progression continues normally from that stage.
 
 `js/17-render25d.js` adds a switchable second visual mode. Press **V** any time
 (mid-game included) to flip between the classic pixel canvas and the 2.5D POP
-mode; append **`?pop=1`** to the URL to boot straight into it (phones have no V
-key, that's the mobile entry point). POP mode keeps the exact same simulation,
-sprite art, levels and HUD — it replays the Level draw ops as textured quads in
-a three.js perspective scene: tiles become extruded prisms (lit top faces),
-decor sits on a pushed-back parallax plane, sprites billboard toward a softly
-swaying camera that aims at Gumdrop. Full-view washes (blackouts, fades) replay
-on the 2D overlay so the HUD stays pixel-crisp; painter order is preserved with
-`renderOrder` + no depth test, so z-ordering logic never changed.
+mode; append **`?pop=1`** to the URL to boot straight into it, or tap the round
+**2.5D** chip on the touch pad (phones have no V key — those are the mobile
+entry points). POP mode keeps the exact same simulation, sprite art, levels and
+HUD — it replays the Level draw ops as textured quads in a three.js perspective
+scene, and gets its own art direction rather than a flat re-dress: the sky is a
+vertical gradient (deeper at the top, hazed toward the horizon), tiles extrude
+into prisms whose true silhouette edges gain shaded side faces (interior faces
+are culled from the recorded tile grid, so rows read as solid blocks), entities
+pop toward a slower, softer camera sway, and a gentle vignette frames the world
+under the pixel-crisp HUD. Decor sits on a pushed-back parallax plane, sprites
+billboard toward a camera that aims at Gumdrop, and full-view washes (blackouts,
+fades) replay on the 2D overlay. Painter order is preserved with `renderOrder` +
+no depth test, so z-ordering logic never changed.
 
 The flat default remains dependency-free. POP mode uses exactly one vendored
 library: `vendor/three.min.js` (three.js r149 UMD build, taken from the npm

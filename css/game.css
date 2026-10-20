@@ -118,6 +118,7 @@ html, body {
   left: 50%;
   bottom: calc(18vmin + 12px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
+  pointer-events: auto;   /* direct child of #touch (pointer-events:none): without this the tap falls through */
   width: 11vmin;
   height: 11vmin;
   min-width: 48px;

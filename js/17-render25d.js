@@ -34,7 +34,7 @@
   let poolN = 0;
 
   /* ---------- per-frame op recorder ---------- */
-  let ops = [], sky = null, skyPending = null;
+  let ops = [], sky = null;
   let M = [1, 0, 0, 1, 0, 0], stack = [], depth = 0, alpha = 1, fill = '#000000';
   let baseE = 0, baseF = 0, baseSet = false, camE = 0, camF = 0, camSet = false;
   let firstTile = false;
@@ -199,6 +199,13 @@
     }
     return p;
   }
+  function avgPix(cv, y0, y1) {
+    const d = cv.getContext('2d').getImageData(0, y0, cv.width, y1 - y0).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let q = 0; q < d.length; q += 4)
+      if (d[q + 3] > 127) { r += d[q]; g += d[q + 1]; b += d[q + 2]; n++; }
+    return n ? [r / n / 255, g / n / 255, b / n / 255] : null;
+  }
   const topOf = new WeakMap();
   function topMat(cv) {
     const key = 't' + cid(cv);
@@ -206,19 +213,58 @@
     if (!mat) {
       let c = topOf.get(cv);
       if (!c) {
-        const ht = Math.min(3, cv.height);
-        const d = cv.getContext('2d').getImageData(0, 0, cv.width, ht).data;
-        let r = 0, g = 0, b = 0, nn = 0;
-        for (let q = 0; q < d.length; q += 4) if (d[q + 3] > 127) { r += d[q]; g += d[q + 1]; b += d[q + 2]; nn++; }
-        if (!nn) { r = 170; g = 176; b = 190; }
-        c = new THREE.Color(r / nn / 255, g / nn / 255, b / nn / 255);
-        c.lerp(new THREE.Color(1, 1, 1), 0.16);   // sunlit top: average of the art's top edge, nudged bright
+        const a = avgPix(cv, 0, Math.min(3, cv.height));
+        c = a ? new THREE.Color(a[0], a[1], a[2]) : new THREE.Color(0.66, 0.69, 0.74);
+        c.lerp(new THREE.Color(1, 1, 1), 0.18);   // sunlit top face: top edge average, nudged bright
         topOf.set(cv, c);
       }
       mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, depthTest: false });
       matOf.set(key, mat);
     }
     return mat;
+  }
+  const sideOf = new WeakMap();
+  function sideMat(cv) {
+    const key = 's' + cid(cv);
+    let mat = matOf.get(key);
+    if (!mat) {
+      let c = sideOf.get(cv);
+      if (!c) {
+        const a = avgPix(cv, 0, cv.height);
+        c = a ? new THREE.Color(a[0] * 0.5, a[1] * 0.55, a[2] * 0.72)
+          : new THREE.Color(0.3, 0.34, 0.46);      // shaded sides: cool-leaning, so prisms read solid
+        sideOf.set(cv, c);
+      }
+      mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, depthTest: false });
+      matOf.set(key, mat);
+    }
+    return mat;
+  }
+  const skyOf = new Map();
+  function rgbStr(c) {
+    return 'rgb(' + Math.round(c.r * 255) + ',' + Math.round(c.g * 255) + ',' + Math.round(c.b * 255) + ')';
+  }
+  function skyMat(str) {
+    let m = skyOf.get(str);
+    if (!m) {
+      const c = parseFill(str)[0];
+      const top = c.clone().multiplyScalar(0.68);
+      const mid = c.clone();
+      const bot = c.clone().lerp(new THREE.Color(1, 1, 1), 0.26);
+      const cvg = document.createElement('canvas');
+      cvg.width = 4; cvg.height = 128;
+      const cx = cvg.getContext('2d');
+      const gr = cx.createLinearGradient(0, 0, 0, 128);
+      gr.addColorStop(0, rgbStr(top));
+      gr.addColorStop(0.45, rgbStr(mid));
+      gr.addColorStop(1, rgbStr(bot));
+      cx.fillStyle = gr;
+      cx.fillRect(0, 0, 4, 128);
+      const tex = new THREE.CanvasTexture(cvg);
+      m = new THREE.MeshBasicMaterial({ map: tex, depthTest: false });
+      skyOf.set(str, m);
+    }
+    return m;
   }
   function quad(geo, mat, cx, cy, cz, sx, sy, rx, ry, ord) {
     let qd = pool[poolN];
@@ -243,6 +289,7 @@
       (R3D.fy === null ? 0 : clampX((R3D.fy - ky) / C.VIEW_H, -0.4, 0.4) * K.FOCUS_P);
     cam.rotation.set(pit, yaw, 0);
   }
+  let skyLast = null;
   R3D.end = function (octx) {
     // the world fills don't reach the overlay anymore, so each world frame
     // starts by wiping stale card/HUD pixels (flat mode relies on this too)
@@ -250,10 +297,22 @@
     if (!R3D.pop) return;
     if (!ensureGL()) { R3D.pop = false; R3D.setMode(); return; }
     updateCam();
-    if (sky !== null) rend.setClearColor(parseFill(sky)[0]);
-    else if (skyPending !== null) rend.setClearColor(skyPending);
+    if (sky !== null) skyLast = sky;
     poolN = 0;
     let ro = 1;
+    if (skyLast !== null) {
+      rend.setClearColor(parseFill(skyLast)[0]);   // base tone still backs everything
+      const hz = (dist - K.SKY_Z) * Math.tan(K.FOV * Math.PI / 360) * 2.1;
+      quad(unitGeo, skyMat(skyLast), cam.position.x, cam.position.y, K.SKY_Z,
+        hz * cam.aspect, hz, 0, 0, 0);             // far gradient sky, painted first
+    }
+    // this frame's tile occupancy: interior side faces are hidden by neighbours,
+    // so only true silhouette edges get sides (keeps the block read clean)
+    const grid = {};
+    for (let q = 0; q < ops.length; q++) {
+      const op = ops[q];
+      if (op.k === 's' && op.tile) grid[op.x / U + ',' + Math.round(op.y / U)] = true;
+    }
     for (let q = 0; q < ops.length; q++) {
       const op = ops[q];
       if (op.k === 'wash') {
@@ -266,9 +325,16 @@
           (op.x + op.w / 2) / U, -(op.y + op.h / 2) / U, op.z, 1, 1, 0, 0, ro++);
         continue;
       }
-      if (op.tile) {   // prism: lit top face just behind the front, painter order preserved
-        quad(unitGeo, topMat(op.img), (op.x + op.w / 2) / U, -op.y / U, -K.Z_EXTRUDE / 2,
+      if (op.tile) {   // prism: lit top, shaded silhouette sides, then the textured front
+        const cz = -K.Z_EXTRUDE / 2;
+        const cy = -(op.y + op.h / 2) / U;
+        const col = op.x / U, row = Math.round(op.y / U);
+        quad(unitGeo, topMat(op.img), (op.x + op.w / 2) / U, -op.y / U, cz,
           op.w / U, K.Z_EXTRUDE, -Math.PI / 2, 0, ro++);
+        if (!grid[(col - 1) + ',' + row])
+          quad(unitGeo, sideMat(op.img), op.x / U, cy, cz, K.Z_EXTRUDE, op.h / U, 0, -Math.PI / 2, ro++);
+        if (!grid[(col + 1) + ',' + row])
+          quad(unitGeo, sideMat(op.img), (op.x + op.w) / U, cy, cz, K.Z_EXTRUDE, op.h / U, 0, Math.PI / 2, ro++);
         quad(geoSub(op.img, 16, 16, op.sw, op.sh), sprMat(op.img, op.sw, op.sh, op.a),
           (op.x + op.w / 2) / U, -(op.y + op.h / 2) / U, 0, 1, 1, 0, 0, ro++);
         continue;
@@ -279,7 +345,7 @@
     }
     for (let q = poolN; q < pool.length; q++) if (pool[q].visible) pool[q].visible = false;
     rend.render(scene, cam);
-    skyPending = parseFill(sky)[0];
+    octx.drawImage(vignette(C.VIEW_W, C.VIEW_H), 0, 0);   // soft frame shading under the HUD
     ops = [];
   };
 
@@ -306,6 +372,23 @@
     R3D.info = rend.info;
     R3D.glCanvas = glCv;
     return true;
+  }
+
+  /* soft frame-edge shading, drawn over the world under the HUD (cached per size) */
+  let vig = null, vigW = 0, vigH = 0;
+  function vignette(W, H) {
+    if (vigW === W && vigH === H) return vig;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const cx = cv.getContext('2d');
+    const gr = cx.createRadialGradient(W / 2, H * 0.5, Math.min(W, H) * 0.45,
+      W / 2, H * 0.5, Math.hypot(W, H) * 0.66);
+    gr.addColorStop(0, 'rgba(6, 10, 26, 0)');
+    gr.addColorStop(1, 'rgba(6, 10, 26, 0.34)');
+    cx.fillStyle = gr;
+    cx.fillRect(0, 0, W, H);
+    vig = cv; vigW = W; vigH = H;
+    return vig;
   }
 
   /* ---------- mode + DOM plumbing ---------- */

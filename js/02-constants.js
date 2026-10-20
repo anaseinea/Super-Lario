@@ -87,8 +87,8 @@
     // (16px = 1 unit); angles in radians. The camera rig is derived from
     // FOV + VIEW_H, so these stay valid at any window width.
     R3D: {
-      FOV: 52, Z_EXTRUDE: 0.55, Z_POP: 0.6, Z_BACK: -1.15,
-      PITCH: -0.05, SWAY_Y: 0.045, SWAY_P: 0.03, SWAY_T: 0.021,
+      FOV: 52, Z_EXTRUDE: 0.62, Z_POP: 0.62, Z_BACK: -1.15, SKY_Z: -18,
+      PITCH: -0.035, SWAY_Y: 0.032, SWAY_P: 0.02, SWAY_T: 0.021,
       FOCUS_Y: 0.1, FOCUS_P: 0.05
     }
   };

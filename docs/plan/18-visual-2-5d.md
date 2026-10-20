@@ -24,16 +24,21 @@ untouched (in flat mode the wrapping proxy just forwards every ctx call).
   transparent materials — no depth buffer decisions to fight.
 - Tiles = 16px sprites from `BROS.Sprites._map` registered under `tile_*`,
   `pipe_*`, `pole_segment`: extruded prisms (front textured, top face = lit
-  average of the art's top edge). Everything else = billboard quads.
+  average of the art's top edge, and shaded side faces only on true silhouette
+  edges — a per-frame occupancy grid culls interior faces so rows read as one
+  solid block). Everything else = billboard quads.
 - World z: tiles at 0, entities +Z_POP (pop toward camera, keep apparent size),
   decor Z_BACK (scaled up so apparent size matches 2D; parallax comes from
   camera sway + focus aim).
 - Camera: perspective, distance = (VIEW_H/2)/tan(FOV/2) so the z=0 plane maps
   16px = 1 unit exactly; position derived from the recorded camera translate,
   so pop mode frames the same slice of the world as the 2D blitter.
-- Sky fill (first full-view fillRect) = scene clear color; blackout/fade washes
-  replay as plain 2D `fillRect`s on the overlay (kept under the HUD, same as
-  flat mode).
+- Sky fill (first full-view fillRect) = both the scene clear color AND a far
+  gradient sky quad (`K.SKY_Z`, cached per sky color as a CanvasTexture: deeper
+  above, base mid, hazed toward the horizon, painted first at renderOrder 0).
+- Blackout/fade washes replay as plain 2D `fillRect`s on the overlay (kept under
+  the HUD, same as flat mode); after each POP frame a cached radial vignette is
+  drawn over the world on that same overlay — framing under the HUD.
 - Textures: the sprite canvases `js/06` bakes at load, used as NearestFilter
   CanvasTextures; sub-rect sources (chomper bands) bake into geometry UVs.
 
@@ -46,6 +51,9 @@ untouched (in flat mode the wrapping proxy just forwards every ctx call).
 - Touch devices: `?pop=1` URL param boots POP, and a round `2.5D` chip button
   (`#btn-mode`, built by `buildTouch`, wired straight to `R3D.toggle` — it is
   not an Input action) sits centered above the pads to flip visuals mid-run.
+  The chip is a direct child of `#touch` (`pointer-events: none`), so its own
+  CSS rule must set `pointer-events: auto` — without it the tap falls through
+  to whatever is underneath (only `.cluster` re-arms the pads).
 - HUD/Screens stay pixel-crisp in both modes (separate `#overlay` canvas).
 - No gameplay state is touched by the recorder — pure observation.
 
