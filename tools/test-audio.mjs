@@ -18,6 +18,15 @@ loadScripts(['js/01-namespace.js', 'js/02-constants.js', 'js/03-utils.js', 'js/0
 const A = globalThis.BROS.Audio;
 
 const problems = [];
+
+// the shipped game boots with C.MUSIC = false (BGM off); assert that switch
+// silences music...
+globalThis.BROS.C.MUSIC = false;
+A.playMusic('main');
+if (A.currentMusic() !== null) problems.push('C.MUSIC=false did not suppress music');
+// ...then flip it on so the sequencer itself can be exercised below
+globalThis.BROS.C.MUSIC = true;
+
 if (!A.ensure()) problems.push('Audio.ensure() returned false');
 const ctx = A.ctx;
 if (!ctx) problems.push('no AudioContext after ensure()');

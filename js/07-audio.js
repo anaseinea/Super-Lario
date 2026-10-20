@@ -408,6 +408,7 @@
   // The sequencer schedules a small window ahead of the audio clock each tick
   // (WebAudio does the sample-accurate timing). Looping just restarts the cursor.
   A.playMusic = function (name) {
+    if (!C.MUSIC) return;   // BGM switched off globally (C.MUSIC, js/02-constants)
     if (!A.ready) A.ensure();
     if (!A.ready) return;
     A.stopMusic(0.08);

@@ -78,6 +78,9 @@
 
     // audio (all gain knobs live here; 0 = silent, 1 = full)
     MASTER_GAIN: 0.6, MUSIC_GAIN: 0.55, SFX_GAIN: 0.9,
-    MAX_VOICES: 18, MUSIC_LOOKAHEAD: 0.35
+    MAX_VOICES: 18, MUSIC_LOOKAHEAD: 0.35,
+    // background music switch: false = no BGM anywhere (SFX + the M mute key
+    // are unaffected); flip to true to bring the 8-bit tracks back
+    MUSIC: false
   };
 })();
