@@ -353,16 +353,18 @@
     for (let y = 1; y <= 4; y++) {
       rows.push('K' + (y >= shine && y <= shine + 2 ? rep('S', 14) : rep('s', 14)) + 'K');
     }
-    rows.push('K' + rep('s', 4) + rep('k', 6) + rep('s', 4) + 'K');   // top of ?
+    rows.push('K' + rep('s', 4) + rep('k', 6) + rep('s', 4) + 'K');   // top bar of ?
     rows.push('K' + rep('s', 8) + 'kk' + rep('s', 4) + 'K');          // curve right
-    rows.push('K' + rep('s', 6) + 'kk' + rep('s', 6) + 'K');          // curve back
     rows.push('K' + rep('s', 6) + 'kk' + rep('s', 6) + 'K');
     rows.push('K' + rep('s', 14) + 'K');
-    rows.push('K' + rep('s', 6) + 'kk' + rep('s', 6) + 'K');          // ? stem
+    rows.push('K' + rep('s', 6) + 'kk' + rep('s', 6) + 'K');          // stem
     rows.push('K' + rep('s', 6) + 'kk' + rep('s', 6) + 'K');
-    rows.push('K' + rep('s', 13) + 'k' + 'K');
+    rows.push('K' + rep('s', 14) + 'K');
+    rows.push('K' + rep('s', 6) + 'kk' + rep('s', 6) + 'K');          // dot
+    rows.push('K' + rep('s', 14) + 'K');
+    rows.push('K' + rep('s', 14) + 'K');
     rows.push(rep('K', 16));
-    return rows.slice(0, 16);
+    return rows;
   }
 
   const USED_ROWS = (function () {
