@@ -1,8 +1,9 @@
 # SUPER GUMDROP BROS.
 
 A dependency-free, single-page browser platformer — 100% original homage.
-Hero: **Gumdrop**, a candy guy racing through 9 hand-authored levels across
-three worlds — Sugar Meadows, the Candy Mine and Peppermint Dusk. All code,
+Hero: **Gumdrop**, a candy guy racing through 12 hand-authored levels across
+four worlds — Sugar Meadows, the Candy Mine, Peppermint Dusk and the Marzipan
+highlands. All code,
 art, audio and level design are authored from scratch in this repository:
 no external assets, no libraries, no build step.
 
@@ -43,6 +44,13 @@ always get the full width.
 | Pause (mid-level, P toggles) | P |
 | Mute music/SFX | M |
 
+Background music is switched off by default — `js/02-constants.js` carries
+`MUSIC: false`, which short-circuits `BROS.Audio.playMusic` (every call site —
+title, card, level tracks, clear, game-over). SFX and the M key still work.
+Flip the flag to `true` to bring the synthesized 8-bit BGM back.
+level tracks, clear, game-over). SFX and the M key still work. Flip the flag to
+`true` to bring the synthesized 8-bit BGM back.
+
 Touch devices: when the media query `pointer: coarse` matches (phones/tablets)
 a fixed on-screen pad appears — d-pad ◀ ▼ ▶ in the bottom-left corner, B (run)
 and A (jump) in the bottom-right, sized in viewport units and translucent. The
@@ -54,7 +62,7 @@ by `BROS.Input.buildTouch`, styled in `css/game.css`.
 On the title screen, tap the warp code — **RIGHT RIGHT DOWN DOWN LEFT RIGHT
 RUN RUN** (keyboard arrows + X/Shift, or on the touch pad: ▶ ▶ ▼ ▼ ◀ ▶ B B).
 A gate jingle opens a hidden "SELECT YOUR STAGE" menu: ◀ ▶ move a blinking
-cursor across all nine stages, Enter/A starts a fresh run from there, and
+cursor across all twelve stages, Enter/A starts a fresh run from there, and
 progression continues normally from that stage.
 
 ## Test suite (all must pass)

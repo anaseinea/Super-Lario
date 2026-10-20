@@ -25,6 +25,9 @@ import { build as build16 } from './design-16.mjs';
 import { build as build17 } from './design-17.mjs';
 import { build as build18 } from './design-18.mjs';
 import { build as build19 } from './design-19.mjs';
+import { build as build20 } from './design-20.mjs';
+import { build as build21 } from './design-21.mjs';
+import { build as build22 } from './design-22.mjs';
 
 const { BROS } = load([
   'js/01-namespace.js',
@@ -42,9 +45,9 @@ function ok(cond, msg) { if (!cond) throw new Error('assert: ' + msg); }
 /* ------------------------------------------------------------------ *
  * 1. parse every shipped map
  * ------------------------------------------------------------------ */
-const designs = [build11(), build12(), build13(), build14(), build15(), build16(), build17(), build18(), build19()];
+const designs = [build11(), build12(), build13(), build14(), build15(), build16(), build17(), build18(), build19(), build20(), build21(), build22()];
 const levels = BROS.LEVELS;
-if (levels.length !== 9) fail('expected 9 levels in BROS.LEVELS, got ' + levels.length);
+if (levels.length !== 12) fail('expected 12 levels in BROS.LEVELS, got ' + levels.length);
 
 for (let i = 0; i < levels.length; i++) {
   const def = levels[i];
