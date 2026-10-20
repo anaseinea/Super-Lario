@@ -43,6 +43,7 @@ always get the full width.
 | Start (menus, skip tally) | Enter |
 | Pause (mid-level, P toggles) | P |
 | Mute music/SFX | M |
+| Toggle 2.5D POP visuals | V |
 
 Background music is switched off by default — `js/02-constants.js` carries
 `MUSIC: false`, which short-circuits `BROS.Audio.playMusic` (every call site —
@@ -64,6 +65,25 @@ RUN RUN** (keyboard arrows + X/Shift, or on the touch pad: ▶ ▶ ▼ ▼ ◀ �
 A gate jingle opens a hidden "SELECT YOUR STAGE" menu: ◀ ▶ move a blinking
 cursor across all twelve stages, Enter/A starts a fresh run from there, and
 progression continues normally from that stage.
+
+### 2.5D "POP" render mode (optional)
+
+`js/17-render25d.js` adds a switchable second visual mode. Press **V** any time
+(mid-game included) to flip between the classic pixel canvas and the 2.5D POP
+mode; append **`?pop=1`** to the URL to boot straight into it (phones have no V
+key, that's the mobile entry point). POP mode keeps the exact same simulation,
+sprite art, levels and HUD — it replays the Level draw ops as textured quads in
+a three.js perspective scene: tiles become extruded prisms (lit top faces),
+decor sits on a pushed-back parallax plane, sprites billboard toward a softly
+swaying camera that aims at Gumdrop. Full-view washes (blackouts, fades) replay
+on the 2D overlay so the HUD stays pixel-crisp; painter order is preserved with
+`renderOrder` + no depth test, so z-ordering logic never changed.
+
+The flat default remains dependency-free. POP mode uses exactly one vendored
+library: `vendor/three.min.js` (three.js r149 UMD build, taken from the npm
+`three` package: `npm i three@0.149.0` → copy `build/three.min.js`; MIT). If
+that file is missing the game just stays in flat mode — nothing crashes. See
+`docs/plan/18-visual-2-5d.md` for the mode's contract and knobs (`BROS.C.R3D`).
 
 ## Test suite (all must pass)
 
@@ -112,7 +132,8 @@ node tools/dump-sprite.mjs        # print an ASCII dump of any sprite frame
 ```text
 index.html          boot page (canvas #screen, touch pad #touch, script order)
 css/game.css        page styling (canvas smoothing off, pixel-crisp)
-js/01…16            the game: one classic-script module per plan step (01–16)
-docs/plan/          build plan + 17 step contracts
+js/01…17            the game: one classic-script module per plan step (01–17; 17 = POP mode)
+vendor/three.min.js the one shipped external: three.js r149 UMD, only used by POP mode
+docs/plan/          build plan + 18 step contracts
 tools/              Node test/validation harnesses (never shipped to browser)
 ```

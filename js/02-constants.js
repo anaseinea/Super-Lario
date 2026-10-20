@@ -81,6 +81,15 @@
     MAX_VOICES: 18, MUSIC_LOOKAHEAD: 0.35,
     // background music switch: false = no BGM anywhere (SFX + the M mute key
     // are unaffected); flip to true to bring the 8-bit tracks back
-    MUSIC: false
+    MUSIC: false,
+
+    // 2.5D POP render mode (js/17-render25d.js): depths in world units
+    // (16px = 1 unit); angles in radians. The camera rig is derived from
+    // FOV + VIEW_H, so these stay valid at any window width.
+    R3D: {
+      FOV: 52, Z_EXTRUDE: 0.55, Z_POP: 0.6, Z_BACK: -1.15,
+      PITCH: -0.05, SWAY_Y: 0.045, SWAY_P: 0.03, SWAY_T: 0.021,
+      FOCUS_Y: 0.1, FOCUS_P: 0.05
+    }
   };
 })();

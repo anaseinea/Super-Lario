@@ -9,7 +9,8 @@
   const C = BROS.C;
 
   /* ---------------- the state machine (no DOM inside) ---------------- */
-  function create(canvas, ctx, input) {
+  function create(canvas, ctx, input, hud) {
+    if (!hud) hud = ctx;   // POP mode: HUD/Screens live on a crisp 2D overlay above the GL world
     const game = {};
     game.state = 'title';
     game.levelIdx = 0;
@@ -209,43 +210,50 @@
       }
     };
 
-    /* ---------------- draw pass: Level -> HUD -> Screens (plan 14 z-order) ---- */
+    /* ---------------- draw pass: Level -> HUD -> Screens (plan 14 z-order) ----
+     * In POP mode (js/17) the Level draw ctx is the recording proxy: begin/end
+     * bracket one world frame replayed through three.js; HUD + screens always
+     * paint onto the 2D overlay, which keeps their order pixel-identical. */
     game.draw = function () {
       switch (game.state) {
         case 'title':
-          BROS.Screens.title(ctx);
+          BROS.Screens.title(hud);
           break;
         case 'select':
-          BROS.Screens.select(ctx, {
+          BROS.Screens.select(hud, {
             names: BROS.LEVELS.map(function (d) { return d.name; }),
             idx: game.selIdx
           });
           break;
         case 'card':
-          BROS.Screens.card(ctx, { worldName: BROS.LEVELS[game.levelIdx].name,
+          BROS.Screens.card(hud, { worldName: BROS.LEVELS[game.levelIdx].name,
             go: game.cardT >= 40 });
-          if (game.paused) BROS.Screens.pause(ctx);
+          if (game.paused) BROS.Screens.pause(hud);
           break;
         case 'play':
+          if (BROS.R3D) BROS.R3D.begin();
           game.level.draw(ctx);
-          BROS.HUD.draw(ctx, game.level.hudData());
-          if (game.paused) BROS.Screens.pause(ctx);   // pause = play + dim overlay
+          if (BROS.R3D) BROS.R3D.end(hud);
+          BROS.HUD.draw(hud, game.level.hudData());
+          if (game.paused) BROS.Screens.pause(hud);   // pause = play + dim overlay
           break;
         case 'tally':
+          if (BROS.R3D) BROS.R3D.begin();
           game.level.draw(ctx);
-          BROS.HUD.draw(ctx, game.level.hudData());   // ticking HUD (plan 15)
-          if (game.paused) BROS.Screens.pause(ctx);
+          if (BROS.R3D) BROS.R3D.end(hud);
+          BROS.HUD.draw(hud, game.level.hudData());   // ticking HUD (plan 15)
+          if (game.paused) BROS.Screens.pause(hud);
           break;
         case 'clear':
-          BROS.HUD.draw(ctx, game.level.hudData());
-          BROS.Screens.clearcard(ctx, { worldName: BROS.LEVELS[game.levelIdx].name,
+          BROS.HUD.draw(hud, game.level.hudData());
+          BROS.Screens.clearcard(hud, { worldName: BROS.LEVELS[game.levelIdx].name,
             done: game.lock === 0 });
           break;
         case 'gameover':
-          BROS.Screens.gameover(ctx, { score: game.scoreText(), retry: game.lock === 0 });
+          BROS.Screens.gameover(hud, { score: game.scoreText(), retry: game.lock === 0 });
           break;
         case 'allclear':
-          BROS.Screens.allclear(ctx, { score: game.finalText(), press: game.lock === 0 });
+          BROS.Screens.allclear(hud, { score: game.finalText(), press: game.lock === 0 });
           break;
       }
     };
@@ -267,11 +275,18 @@
       const cv = document.getElementById('screen');
       const ctx = cv.getContext('2d');
       ctx.imageSmoothingEnabled = false;
-      const game = create(cv, ctx, null);
+      // 2.5D POP mode (js/17): ?pop=1 boots into it, V toggles later. wrap() gives
+      // Level the forwarding proxy; boot hands back the 2D overlay ctx for HUD/Screens.
+      const wantPop = /(^|[?&])pop=1/.test(window.location.search);
+      const hud = BROS.R3D.boot(cv, wantPop);
+      const game = create(cv, BROS.R3D.wrap(ctx), null, hud);
       RUN = game;
       game.ctx = ctx;
 
       BROS.Input.attach();
+      window.addEventListener('keydown', function (e) {
+        if (!e.repeat && (e.key === 'v' || e.key === 'V')) BROS.R3D.toggle();
+      });
       const touch = document.getElementById('touch');
       if (touch && !touch.hasChildNodes()) BROS.Input.buildTouch(touch);
       BROS.Sprites.ensure('day');          // title-screen art before any level exists
@@ -296,6 +311,7 @@
         cv.height = C.VIEW_H;
         cv.style.width = Math.round(C.VIEW_W * k) + 'px';
         cv.style.height = Math.round(C.VIEW_H * k) + 'px';
+        BROS.R3D.resize(cv);   // keep #gl + #overlay canvases in lockstep with #screen
       };
       BROS.Game.resize = resize;
 

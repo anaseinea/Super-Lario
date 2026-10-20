@@ -15,12 +15,40 @@ html, body {
   font-family: "Courier New", monospace;
 }
 #screen {
+  display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   background: #000;
   touch-action: none;
   outline: 2px solid #2b2e55;
   flex-shrink: none;
+}
+/* 2.5D POP mode (js/17): boot moves #screen into a shared #stage slot; the GL
+ * world and the 2D HUD overlay sit absolutely on top of it, pixel-for-pixel */
+#stage {
+  position: relative;
+  flex-shrink: none;
+}
+#gl {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+  touch-action: none;
+}
+#gl.show { display: block; }
+#screen.pop { visibility: hidden; }
+#overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 30;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 /* hint stays out of flow: it must never squeeze a full-fit canvas */
 #hint {

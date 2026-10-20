@@ -38,6 +38,7 @@ no libraries, no build step).
 | 14 | 14-game-state-manager.md | js/16-game.js | 11–13 |
 | 15 | 15-hud-and-screens.md | js/15-hud.js | 05, 06, 14 |
 | 16 | 16-juice-and-polish.md | cross-cutting (07, 12, 13, 14) | 11–13 |
+| 17 | 18-visual-2-5d.md | js/17-render25d.js, vendor/three.min.js (npm `three`) | 02, 06, 14, 15 |
 | 17 | 17-testing-and-tuning.md | tools/validate-levels.mjs | all |
 
 ## Signature twists that make this OUR game (not a clone)

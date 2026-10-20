@@ -794,6 +794,7 @@
 
       /* player (blink-hidden frames are skipped: Level owns the invuln presentation) */
       const p = this.player;
+      if (BROS.R3D) BROS.R3D.focus(p.x + p.w / 2, p.y + p.h / 2);
       let show = !p.blinkHidden() && this.flagPhase !== 'done';
       if (this.flagPhase === 'enter' && this.flagT >= enterCut) show = false;
       if (show) {
