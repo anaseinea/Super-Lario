@@ -107,6 +107,34 @@ const FLAT = world([
   ok(!sank, 'jelly never sinks through the floor');
 }
 
+/* --- regression: power-up leaving a long block row ------------------------
+ * The old code accumulated vy every standing frame without a landing reset,
+ * so the item TELEPORTED down (vy at MAX_FALL) the instant it hit the ledge.
+ * A proper fall starts at ~GRAVITY px/frame and accelerates from there.   */
+{
+  const w = world([
+    '....................', '....................', '....................',
+    '....................', '....................', '....................',
+    '....................', '....................', '....................',
+    '....................', '....................',
+    '...XXXXX..........', 'GGGGGGGGGGGGGGGGGG', 'GGGGGGGGGGGGGGGGGG'
+  ]);
+  const j = O.item('jelly', 7, 11);
+  for (let f = 0; f < C.ITEM_EMERGE_FRAMES; f++) j.update(w);
+  let firstAirVy = null, sank = false;
+  for (let f = 0; f < 400; f++) {
+    const before = j.y + j.h;
+    j.update(w);
+    const after = j.y + j.h;
+    if (firstAirVy === null && before <= 11 * 16 + 0.01 && after > 11 * 16 + 0.01) firstAirVy = after - before;
+    if (before < 12 * 16 && after > 12 * 16 + 1) sank = true;   // snapped landing, never punched through
+    if (before >= 12 * 16 - 0.01 && Math.abs(after - before) > 1) sank = true; // stable on the floor
+  }
+  ok(firstAirVy !== null && firstAirVy < C.GRAVITY + 1, 'jelly leaves the block ledge at normal gravity');
+  ok(!sank, 'falling jelly does not punch through the floor');
+  ok(!j.dead, 'jelly survives the drop');
+}
+
 /* --- ember item: static until touched ------------------------------------ */
 {
   const e = O.item('ember', 4, 10);

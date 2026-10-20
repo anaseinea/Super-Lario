@@ -132,6 +132,7 @@
           e.vy = Math.min(e.vy + C.GRAVITY, C.MAX_FALL);
           e.vx = dir * speed;
           const ev = Phys.move(e, level, { grounded: false });
+          if (ev.landed) e.vy = 0;      // landed: reset, else vy accumulates all along the walk
           if (ev.hitWall) { e.x -= e.vx; e.vx = -e.vx; }   // flip at walls
           if (offBottom(e, level)) e.dead = true;
         } else if (power === 'bubble') {

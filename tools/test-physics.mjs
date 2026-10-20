@@ -20,6 +20,39 @@ if (fails.length) {
 }
 
 /* ------------------------------------------------------------------ *
+ * regression: one-tile holes are NOT walkable — support is the centre
+ * column, so a body may overhang an edge by half its width but walking
+ * into a hole makes the entity fall along the far inner wall.
+ * ------------------------------------------------------------------ */
+{
+  function chk(cond, msg) { if (!cond) { process.stdout.write('  FAIL ' + msg + '\n'); bad = 1; } }
+  const holeWorld = {
+    cols: 8, rows: 12,
+    solidAt(c, r) { return r === 5 && ((c >= 0 && c <= 2) || (c >= 4 && c <= 6)); },
+    landTypeAt() { return null; }
+  };
+  const e = { x: 3 * 16 - 12, y: 4 * 16, w: 12, h: 16, vx: 0, vy: 0 };
+  chk(BROS.Phys.groundProbe(e, holeWorld) !== null,
+    'flush-at-ledge-edge body should still be supported');
+  let grounded = true, fell = false, fallVy = [], crossedAtLevel = false;
+  for (let f = 0; f < 160; f++) {
+    e.vx = 1.2;
+    e.vy = grounded ? 0 : Math.min(e.vy + C.GRAVITY, C.MAX_FALL);
+    if (!grounded) fallVy.push(e.vy);
+    const ev = BROS.Phys.move(e, holeWorld, { grounded: grounded });
+    grounded = ev.onGround;
+    if (!grounded) fell = true;
+    // never walk through the far platform tile while still at its top level
+    if (e.y + e.h <= 5 * 16 + 0.01 && e.x + e.w > 4 * 16 + 0.01) crossedAtLevel = true;
+  }
+  chk(fell, 'walking right into a one-tile hole never dropped the entity (walked over thin air)');
+  chk(fallVy.length > 1 && fallVy[1] <= C.GRAVITY + C.GRAVITY + 0.01,
+    'fall must start at normal gravity, not terminal velocity');
+  chk(fell && e.y + e.h >= 6 * 16, 'entity fell at least one tile into the hole');
+  chk(!crossedAtLevel, 'entity crossed the far wall column at platform level, not in the hole');
+}
+
+/* ------------------------------------------------------------------ *
  * simulated jump arc, mirroring the player rules from docs/plan/11:
  *   gravity = GRAVITY while falling or coasting, GRAVITY_HOLD while rising
  *   with A held, vy clamped to JUMP_CUT when A is released early.

@@ -40,10 +40,14 @@
   /* ------------------------------------------------------------------ *
    * probing helpers
    * ------------------------------------------------------------------ */
-  /** Is there solid ground directly under the entity's feet? */
+  /** Support under the entity's centre column.  Support = any-overlap would
+   * let an entity straddle a one-tile hole and "walk over thin air", so the
+   * probe sits at the middle of the feet: the body may overhang an edge by
+   * half its width, but once the centre passes it the entity starts falling. */
   function groundProbe(entity, world) {
     const row = cellOf(entity.y + entity.h + 1);
-    for (const col of colsOf(entity)) if (world.solidAt(col, row)) return { col: col, row: row };
+    const col = cellOf(entity.x + entity.w / 2);
+    if (world.solidAt(col, row)) return { col: col, row: row };
     return null;
   }
 
@@ -206,10 +210,9 @@
       ev.steppedOff = !groundProbe(entity, world);
     }
 
-    if (o.maxStep > 0 && ev.hitWall) {
-      /* optional auto step-up: try rising a whole tile at a time, then nudging
-       * forward and falling back onto the ledge.  Used by nothing by default
-       * (the player jumps over steps instead), but handy for riding entities. */
+    if (o.maxStep > 0 && ev.hitWall && wasGrounded) {
+      /* auto step-up only while walking on real ground: climbing a wall face
+       * while airborne/falling would ignore the very gap the entity fell to */
       const dir = ev.hitWall === 'right' ? 1 : -1;
       const saveX = entity.x, saveY = entity.y;
       let climbed = false;
