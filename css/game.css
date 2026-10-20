@@ -69,6 +69,9 @@ html, body {
   justify-content: center;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  /* explicit: long-press must not trigger text-selection callouts on phones */
+  user-select: none;
+  -webkit-user-select: none;
 }
 #touch button:active { background: rgba(255, 255, 255, 0.45); }
 @media (pointer: coarse) {

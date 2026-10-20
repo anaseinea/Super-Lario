@@ -41,8 +41,10 @@
     });
     const off = function (e) { e.preventDefault(); setVirtual(action, false); };
     b.addEventListener('pointerup', off);
-    b.addEventListener('pointercancel', off);
     b.addEventListener('pointerleave', off);
+    // NB: no pointercancel release — Android Chrome fires it when it turns a
+    // held touch into a long-press/selection gesture; the finger is still
+    // down, so the hold must survive. The lift later fires pointerup.
     b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     container.appendChild(b);
   }
