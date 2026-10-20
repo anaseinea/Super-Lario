@@ -41,11 +41,20 @@ untouched (in flat mode the wrapping proxy just forwards every ctx call).
   drawn over the world on that same overlay — framing under the HUD.
 - Textures: the sprite canvases `js/06` bakes at load, used as NearestFilter
   CanvasTextures; sub-rect sources (chomper bands) bake into geometry UVs.
+- The proxy tracks its own transform stack for pop mode, but in flat mode it
+  FORWARDS every op including `save/translate/scale/rotate/restore` to the
+  backing ctx. Only the pop path needs the shadow matrix; if flat stopped
+  forwarding transforms, the ctx transform would be stuck at whatever the last
+  POP-era frame left behind and a mid-run pop→flat flip would draw the whole
+  world misaligned (most of it off-canvas).
 
 ## Acceptance
 
 - Flat mode identical to before (proxy forwards; tests unaffected — they never
   load 17).
+- Mode switches mid-run in BOTH directions render the full, correctly-framed
+  world at the current scroll position (the transform ops forward in flat mode
+  so the ctx never falls out of lockstep).
 - `?pop=1` boots the POP mode; `V` key toggles mid-game; if `vendor/three.min.js`
   is missing, pop falls back to flat on the first frame without crashing.
 - Touch devices: `?pop=1` URL param boots POP, and a round `2.5D` chip button

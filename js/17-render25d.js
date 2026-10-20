@@ -55,19 +55,29 @@
     const api = {};
     const store = { fillStyle: '#000000', globalAlpha: 1, imageSmoothingEnabled: true };
     api.save = function () {
+      // in flat mode the backing ctx must keep real transforms live: only the
+      // pop path needs the shadow matrix. without forwarding, a pop->flat flip
+      // mid-run leaves the ctx transform stuck and the world lands misaligned
+      if (!R3D.pop) real.save();
       stack.push([M[0], M[1], M[2], M[3], M[4], M[5], depth, baseE, baseF]);
       depth++;
     };
     api.restore = function () {
+      if (!R3D.pop) real.restore();
       const p = stack.pop();
       M = [p[0], p[1], p[2], p[3], p[4], p[5]]; depth = p[6]; baseE = p[7]; baseF = p[8];
     };
     api.translate = function (x, y) {
+      if (!R3D.pop) real.translate(x, y);
       M[4] += M[0] * x + M[2] * y; M[5] += M[1] * x + M[3] * y;
       if (depth === 1 && !baseSet) { baseE = M[4]; baseF = M[5]; baseSet = true; }
     };
-    api.scale = function (sx, sy) { M[0] *= sx; M[1] *= sx; M[2] *= sy; M[3] *= sy; };
+    api.scale = function (sx, sy) {
+      if (!R3D.pop) real.scale(sx, sy);
+      M[0] *= sx; M[1] *= sx; M[2] *= sy; M[3] *= sy;
+    };
     api.rotate = function (an) {
+      if (!R3D.pop) real.rotate(an);
       const co = Math.cos(an), si = Math.sin(an), a0 = M[0], b0 = M[1], c0 = M[2], d0 = M[3];
       M[0] = a0 * co + c0 * si; M[1] = b0 * co + d0 * si;
       M[2] = c0 * co - a0 * si; M[3] = d0 * co - b0 * si;
