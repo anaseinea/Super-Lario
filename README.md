@@ -49,6 +49,14 @@ and A (jump) in the bottom-right, sized in viewport units and translucent. The
 A button also confirms in menus (SMB-style: tap A on the title to start). Built
 by `BROS.Input.buildTouch`, styled in `css/game.css`.
 
+### Secret: stage select
+
+On the title screen, tap the warp code — **RIGHT RIGHT DOWN DOWN LEFT RIGHT
+RUN RUN** (keyboard arrows + X/Shift, or on the touch pad: ▶ ▶ ▼ ▼ ◀ ▶ B B).
+A gate jingle opens a hidden "SELECT YOUR STAGE" menu: ◀ ▶ move a blinking
+cursor across all nine stages, Enter/A starts a fresh run from there, and
+progression continues normally from that stage.
+
 ## Test suite (all must pass)
 
 Syntax-check every source file, then run the Node self-tests (no browser needed

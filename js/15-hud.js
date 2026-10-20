@@ -56,9 +56,12 @@
   const T_FINAL = 'FINAL SCORE ', T_ALLCLEAR = 'ALL CLEAR!';
   const T_THANKS = 'THANKS FOR PLAYING';
   const T_MADE = 'MADE BY: THIS ONE FILE REPO';
+  const T_SELECT = 'SELECT YOUR STAGE';
+  const T_SELHELP = 'LEFT/RIGHT MOVE  ENTER GO';
+  const T_SELTAP = 'TAP A ON TOUCH PADS';
   const SCREEN_COPY = [T_SUPER, T_BROS, T_PRESS, T_CTRL1, T_CTRL2,
     T_LEGEND1, T_LEGEND2, T_CREDIT1, T_CREDIT2, T_CARD, T_GO, T_PAUSE, T_CLEAR,
-    T_OVER, T_SCORE, T_FINAL, T_ALLCLEAR, T_THANKS, T_MADE];
+    T_OVER, T_SCORE, T_FINAL, T_ALLCLEAR, T_THANKS, T_MADE, T_SELECT, T_SELHELP, T_SELTAP];
   let bad = 0;
   for (const s of SCREEN_COPY)
     for (const ch of s) if (!F.hasChar(ch)) bad++;
@@ -107,6 +110,35 @@
     ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
     center(ctx, T_CARD + data.worldName, 112, 2, WHITE);
     if (data.go) center(ctx, T_GO, 140, 2, GOLD);
+  };
+
+  BROS.Screens.select = function (ctx, data) {   // secret warp menu (hidden cheat)
+    ctx.fillStyle = BLACK;
+    ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
+    center(ctx, T_SELECT, 40, 2, GOLD);
+    const names = data.names;
+    const per = 3;
+    const nameW = F.width(names[0], 1);
+    const gap = 12;
+    const rowW = nameW * per + gap * (per - 1);
+    const x0 = Math.floor((C.VIEW_W - rowW) / 2);
+    const rows = Math.ceil(names.length / per);
+    for (let r = 0; r < rows; r++) {
+      const y = 76 + r * 26;
+      for (let j = 0; j < per; j++) {
+        const i = r * per + j;
+        if (i >= names.length) break;
+        const x = x0 + j * (nameW + gap);
+        const sel = i === data.idx;
+        if (sel) {
+          ctx.fillStyle = blinkOn() ? PINK : GOLD;
+          ctx.fillRect(x - 5, y - 3, nameW + 10, 14);
+        }
+        F.drawText(ctx, names[i], x, y, { scale: 1, color: sel ? BLACK : WHITE });
+      }
+    }
+    center(ctx, T_SELHELP, 168, 1, MINT);
+    center(ctx, T_SELTAP, 180, 1, TAUPE);
   };
 
   BROS.Screens.pause = function (ctx) {

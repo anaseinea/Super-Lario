@@ -20,14 +20,18 @@
     game.paused = false;
     game.input = input || BROS.Input; // swap for Node self-tests
     game.tallyT = 0;
+    game.secret = 0;                   // hidden warp-code progress (see secretTrack)
+    game.secretSeq = ['right', 'right', 'down', 'down', 'left', 'right', 'run', 'run'];
+    game.selIdx = 0;                   // cursor on the secret stage-select screen
 
-    game.newGame = function () {
+    game.secretStart = function (idx) {   // fresh run starting at any stage (warp menu)
       game.gs.score = 0; game.gs.coins = 0; game.gs.lives = C.LIVES_START;
-      game.levelIdx = 0;
+      game.levelIdx = idx;
       game.state = 'card';
       game.cardT = 0;
       game.enterMenu();
     };
+    game.newGame = function () { game.secretStart(0); };
     game.enterMenu = function () {
       game.lock = C.MENU_LOCKOUT;      // block the same gesture from cascading
       game.input.clear();
@@ -37,6 +41,25 @@
       // START button, so the jump button doubles as the menu gesture.
       if (game.lock !== 0) return false;
       return game.input.consume('start') || game.input.consume('jump');
+    };
+    game.secretTrack = function () {
+      // Hidden warp code — on the title screen, keyboard arrows or the touch
+      // pad: RIGHT RIGHT DOWN DOWN LEFT RIGHT RUN RUN  (▶ ▶ ▼ ▼ ◀ ▶ B B).
+      // Consume the wanted action first so duplicate entries (e.g. the two
+      // RIGHTS) advance one step per press.
+      const I = game.input;
+      const SEQ = game.secretSeq;
+      const want = SEQ[game.secret];
+      if (I.consume(want)) {
+        game.secret++;
+        if (game.secret >= SEQ.length) { game.secret = 0; return true; }
+        return false;
+      }
+      for (let k = 0; k < SEQ.length; k++) {
+        if (k === game.secret) continue;
+        if (I.consume(SEQ[k])) { game.secret = (k === 0) ? 1 : 0; break; }
+      }
+      return false;
     };
     game.buildLevel = function (idx) {
       game.levelIdx = idx;
@@ -78,10 +101,36 @@
       }
       switch (game.state) {
         case 'title':
-          if (game.acceptGesture()) {
+          if (game.secretTrack()) {                  // warp code unlocked
+            game.state = 'select';
+            game.selIdx = 0;
+            game.enterMenu();                        // the last code press must not confirm
+            const AS = BROS.Audio;
+            if (AS && AS.sfx) AS.sfx('gate');
+          } else if (game.acceptGesture()) {
             game.newGame();
             const A = BROS.Audio;
             if (A && A.playMusic) A.playMusic('card');
+          }
+          break;
+
+        case 'select':
+          {
+            const n = BROS.LEVELS.length;
+            const AS1 = BROS.Audio;
+            if (game.input.consume('left')) {
+              game.selIdx = (game.selIdx + n - 1) % n;
+              if (AS1 && AS1.sfx) AS1.sfx('blipdown');
+            }
+            if (game.input.consume('right')) {
+              game.selIdx = (game.selIdx + 1) % n;
+              if (AS1 && AS1.sfx) AS1.sfx('blipup');
+            }
+            if (game.acceptGesture()) {
+              game.secretStart(game.selIdx);
+              const A = BROS.Audio;
+              if (A && A.playMusic) A.playMusic('card');
+            }
           }
           break;
 
@@ -165,6 +214,12 @@
       switch (game.state) {
         case 'title':
           BROS.Screens.title(ctx);
+          break;
+        case 'select':
+          BROS.Screens.select(ctx, {
+            names: BROS.LEVELS.map(function (d) { return d.name; }),
+            idx: game.selIdx
+          });
           break;
         case 'card':
           BROS.Screens.card(ctx, { worldName: BROS.LEVELS[game.levelIdx].name,
