@@ -666,8 +666,13 @@
       ctx.fillStyle = SKY[self.theme] || SKY.day;
       ctx.fillRect(0, 0, C.VIEW_W, C.VIEW_H);
       ctx.save();
-      // scroll the world by -camX (plus shake offsets); entities render at world coords
-      ctx.translate(self.camera.offsetX() - self.camX, self.camera.offsetY());
+      // scroll the world by -camX (plus shake offsets); entities render at world coords.
+      // NB: the translate must land on an INTEGER device pixel — with camX kept exact
+      // (physics/soft-walls need it), a fractional translate made every tile blit
+      // sample at fractional coords under nearest-neighbour blitting, so adjacent
+      // dirt tiles alternately overlapped/left a 1px gap while the camera moved
+      // (the flickering hairline seams). Round here; drawSprite already rounds.
+      ctx.translate(Math.round(self.camera.offsetX() - self.camX), self.camera.offsetY());
 
       /* background decor (behind tiles) */
       const camR = self.camX + C.VIEW_W;
